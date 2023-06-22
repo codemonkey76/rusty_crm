@@ -10,7 +10,7 @@ use simplelog::*;
 use std::fs::File;
 
 fn main() {
-    let _ = WriteLogger::init(LevelFilter::Info, Config::default(), File::create("my_log.log").unwrap());
+    let _ = WriteLogger::init(LevelFilter::Info, Config::default(), File::create("log/log.log").unwrap());
 
     log::info!("Starting program...");
 

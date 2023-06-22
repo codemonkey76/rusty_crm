@@ -50,7 +50,7 @@ impl ScrollBuffer {
 
     pub fn clear(&self) -> io::Result<()> {
         stdout().queue(MoveTo(0, 1))?;
-        for i in 0..self.rows {
+        for _ in 0..self.rows {
             stdout().queue(Clear(ClearType::CurrentLine))?;
             stdout().queue(MoveToNextLine(1))?;
         }
