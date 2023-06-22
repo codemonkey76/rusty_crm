@@ -7,7 +7,7 @@ pub struct Contact {
 const ERR_MSG: &str = "At least one of phone or email must be provided";
 
 impl Contact {
-    pub fn new(name: String, phone: Option<String>, email: Option<String>) -> Result<Contact, &'static str> {
+    pub fn _new(name: String, phone: Option<String>, email: Option<String>) -> Result<Contact, &'static str> {
         if phone.is_none() && email.is_none() {
             return Err(ERR_MSG);
         }
@@ -15,7 +15,7 @@ impl Contact {
         Ok(Contact { name, phone, email })
     }
 
-    pub fn set_phone(&mut self, phone: Option<String>) -> Result<(), &'static str>{
+    pub fn _set_phone(&mut self, phone: Option<String>) -> Result<(), &'static str>{
         if phone.is_none() && self.email.is_none() {
             return Err(ERR_MSG);
         }
@@ -24,7 +24,7 @@ impl Contact {
         Ok(())
         }
 
-    pub fn set_email(&mut self, email: Option<String>) -> Result<(), &'static str> {
+    pub fn _set_email(&mut self, email: Option<String>) -> Result<(), &'static str> {
         if email.is_none() && self.phone.is_none() {
             return Err(ERR_MSG);
         }

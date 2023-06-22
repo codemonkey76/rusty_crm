@@ -1,3 +1,3 @@
 pub struct Note {
-    text: String
+    _text: String
 }
