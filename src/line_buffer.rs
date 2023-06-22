@@ -91,16 +91,16 @@ impl LineBuffer {
     pub fn move_left(&mut self) -> io::Result<()> {
         if self.caret_pos > 0 {
             self.caret_pos -= 1;
+            stdout().execute(MoveLeft(1))?;
         }
-        stdout().execute(MoveLeft(1))?;
 
         Ok(())
     }
     pub fn move_right(&mut self) -> io::Result<()> {
         if self.caret_pos < self.buffer.len() {
             self.caret_pos += 1;
+            stdout().execute(MoveRight(1))?;
         }
-        stdout().execute(MoveRight(1))?;
 
         Ok(())
     }
