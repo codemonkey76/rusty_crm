@@ -17,10 +17,14 @@ pub struct Editor {
 
 impl Editor {
     pub fn new() -> Result<Editor, std::io::Error> {
+        log::info!("Initializing editor");
         let color_scheme = ColorScheme::new();
         let line_buffer = LineBuffer::new("Query: ".to_string(), color_scheme.clone());
         let scroll_buffer = ScrollBuffer::new(color_scheme.clone())?;
         let status_line = StatusLine::new(color_scheme.clone())?;
+        log::info!("Editor initialized");
+        log::info!("Starting RawMode");
+
         let _raw_mode = RawMode::new()?;
 
         Ok(Editor {
@@ -33,11 +37,15 @@ impl Editor {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
+        log::info!("Starting editor loop");
         loop {
             if poll(std::time::Duration::from_millis(500))? {
                 if let Event::Key(event) = read()? {
                     match event.code {
-                        KeyCode::Char('q') if event.modifiers.contains(KeyModifiers::CONTROL) => { break; },
+                        KeyCode::Char('q') if event.modifiers.contains(KeyModifiers::CONTROL) => {
+                            log::info!("Exiting editor loop, received CTRL+Q");
+                            break;
+                        },
                         KeyCode::Char(c) => { self.add_key(c)?; },
                         KeyCode::Insert => { self.toggle_insert()?; },
                         KeyCode::Left => { self.move_left()?; },
@@ -60,6 +68,7 @@ impl Editor {
     pub fn init(&mut self) -> io::Result<()> {
         self.scroll_buffer.load_customers();
 
+        self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
         self.line_buffer.draw()?;
         self.scroll_buffer.draw()?;
         self.status_line.set_results_count(self.scroll_buffer.get_results_count());
@@ -71,7 +80,9 @@ impl Editor {
 
     pub fn add_key(&mut self, c: char) -> io::Result<()> {
         self.line_buffer.add(&c.to_string())?;
+        log::info!("Setting filter on scroll_buffer: {}", self.line_buffer.get_string());
         self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
+        self.line_buffer.sync_caret()?;
 
         Ok(())
     }
@@ -108,24 +119,31 @@ impl Editor {
 
     pub fn delete(&mut self) -> io::Result<()> {
         self.line_buffer.delete()?;
+        self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
+        self.line_buffer.sync_caret()?;
+
 
         Ok(())
     }
 
     pub fn backspace(&mut self) -> io::Result<()> {
         self.line_buffer.backspace()?;
+        self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
+        self.line_buffer.sync_caret()?;
 
         Ok(())
     }
 
     pub fn move_up(&mut self) -> io::Result<()> {
         self.scroll_buffer.move_up()?;
+        self.line_buffer.sync_caret()?;
 
         Ok(())
     }
 
     pub fn move_down(&mut self) -> io::Result<()> {
         self.scroll_buffer.move_down()?;
+        self.line_buffer.sync_caret()?;
 
         Ok(())
     }

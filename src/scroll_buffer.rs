@@ -39,19 +39,33 @@ impl ScrollBuffer {
 
     pub fn set_filter(&mut self, filter: String) -> io::Result<()> {
         self.filter = filter;
-        let filter_clone = self.filter.clone();
-        self.filtered = self.buffer.iter().enumerate().filter(|(_, c)| c.name.contains(&filter_clone)).map(|(i, _)| i).collect();
+        let filter_clone = self.filter.clone().to_lowercase();
+        self.filtered = self.buffer.iter().enumerate().filter(|(_, c)| c.name.to_lowercase().contains(&filter_clone)).map(|(i, _)| i).collect();
+        log::info!("Filtered count: {}", self.filtered.len());
         self.scroll_pos = 0;
         self.draw()?;
 
         Ok(())
     }
 
+    pub fn clear(&self) -> io::Result<()> {
+        stdout().queue(MoveTo(0, 1))?;
+        for i in 0..self.rows {
+            stdout().queue(Clear(ClearType::CurrentLine))?;
+            stdout().queue(MoveToNextLine(1))?;
+        }
+        stdout().flush()?;
+
+        Ok(())
+    }
     pub fn draw(&self) -> io::Result<()> {
+        log::info!("Starting function ScrollBuffer::draw");
+        self.clear()?;
         stdout().queue(SavePosition)?;
         stdout().queue(MoveTo(0, 1))?;
 
         // Calculate the start and end index for the customers to draw.
+        log::info!("Calculating start and end index");
         let mut start_index = self.scroll_pos.saturating_sub(self.rows * 2 / 3);
         let mut end_index = (start_index + self.rows).min(self.filtered.len());
 
@@ -65,6 +79,8 @@ impl ScrollBuffer {
             start_index = 0;
             end_index = self.rows.min(self.filtered.len());
         }
+
+        log::info!("Starting loop to draw customers in filtered vector");
 
         for i in start_index..end_index {
             let customer_index = self.filtered[i];  // get the index of the customer
@@ -80,20 +96,24 @@ impl ScrollBuffer {
         }
         stdout().queue(RestorePosition)?;
         stdout().flush()?;
+        log::info!("Finished drawing customers");
 
-        self.draw_scroll_bar()?;
+        if self.filtered.len() > self.rows {
+            self.draw_scroll_bar()?;
+        }
 
         Ok(())
     }
 
 
     fn draw_scroll_bar(&self) -> io::Result<()> {
+        log::info!("Drawing scrollbar");
         stdout().queue(SavePosition)?;
-        stdout().queue(MoveTo(10, 10))?;
-        stdout().queue(Print(self.calculate_scrollbar_handle_position().to_string()))?;
 
+        log::info!("Calculating scrollbar position");
         let scrollbar_pos = self.calculate_scrollbar_handle_position();
 
+        log::info!("Looping through rows to draw scrollbar");
         for i in 1..=self.rows {
             stdout().queue(MoveTo(self.cols as u16-1,  i as u16))?;
             if i == scrollbar_pos {
@@ -107,12 +127,17 @@ impl ScrollBuffer {
             }
         }
         stdout().queue(RestorePosition)?;
+        log::info!("Flushing commands");
         stdout().flush()?;
 
+        log::info!("Finished drawing scrollbar");
         Ok(())
 
     }
     fn calculate_scrollbar_handle_position(&self) -> usize {
+        if self.filtered.len() <= self.rows {
+            return 1;
+        }
         let proportion = self.scroll_pos as f64 / (self.filtered.len() - 1) as f64;
         (proportion * (self.rows - 1) as f64).round() as usize + 1
     }
