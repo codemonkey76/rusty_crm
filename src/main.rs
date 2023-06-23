@@ -31,7 +31,7 @@ fn run_program() -> Result<(), Box<dyn std::error::Error>> {
             proj_dirs.config_dir().join("contacts.json")
         });
 
-    let mut editor = Editor::new(file_path)?;
+    let mut editor = Editor::new(file_path, args.no_splash, args.sample_data)?;
 
     editor.init()?;
 
@@ -41,10 +41,16 @@ fn run_program() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[clap(version = "1.0", author = "Shane Poppleton")]
 struct Args {
     /// Filename to load
-    #[arg(short, long)]
+    #[clap(short, long)]
     filename: Option<String>,
+
+    #[clap(long)]
+    no_splash: bool,
+
+    #[clap(long)]
+    sample_data: bool,
 }
 

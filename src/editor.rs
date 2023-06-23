@@ -28,11 +28,13 @@ pub struct Editor {
     pub mode: EditorMode,            // The editor mode
     pub color_scheme: ColorScheme,   // The color scheme
     temp_customer: Customer,         // The temporary customer
+    no_splash: bool,
+    sample_data: bool,
     _raw_mode: RawMode,              // The raw mode
 }
 
 impl Editor {
-    pub fn new(file_path: PathBuf) -> Result<Editor, std::io::Error> {
+    pub fn new(file_path: PathBuf, no_splash: bool, sample_data: bool) -> Result<Editor, std::io::Error> {
         log::info!("Initializing editor");
         let color_scheme = ColorScheme::new();
         let line_buffer = LineBuffer::new("Query: ".to_string(), color_scheme.clone());
@@ -51,6 +53,8 @@ impl Editor {
             mode: EditorMode::SplashScreen,
             color_scheme,
             temp_customer: Customer::new(),
+            no_splash,
+            sample_data,
             _raw_mode
         })
     }
@@ -62,10 +66,12 @@ impl Editor {
                     match event.code {
                         KeyCode::Char('q') if event.modifiers.contains(KeyModifiers::CONTROL) => {
                             log::info!("Exiting editor loop, received CTRL+Q");
-                            self.save()?;
+                            if ! self.sample_data {
+                                self.save()?;
+                            }
                             break;
                         },
-                        KeyCode::Char('s') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.save()?; },
+                        KeyCode::Char('s') if event.modifiers.contains(KeyModifiers::CONTROL) => { if !self.sample_data { self.save()?; } },
                         KeyCode::Char('a') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.add_customer()?; },
                         KeyCode::Char('e') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.edit_customer()?; },
                         KeyCode::Char('d') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.delete_customer()?; },
@@ -202,14 +208,22 @@ impl Editor {
     }
 
     pub fn init(&mut self) -> io::Result<()> {
-        self.scroll_buffer.load_customers(self.file_path.clone());
+        if self.sample_data {
+            self.scroll_buffer.load_sample_data();
+        } else {
+            self.scroll_buffer.load_customers(self.file_path.clone());
+        }
 
         self.filter()?;
         self.line_buffer.draw()?;
         self.scroll_buffer.draw()?;
         self.line_buffer.sync_caret()?;
-        self.scroll_buffer.splash_screen()?;
-
+        if self.no_splash {
+            self.set_mode(EditorMode::Normal)?;
+        } else {
+            self.scroll_buffer.splash_screen()?;
+        }
+    
         Ok(())
     }
 

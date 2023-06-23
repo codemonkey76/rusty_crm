@@ -71,10 +71,14 @@ impl ScrollBuffer {
 
     pub fn update_customer(&mut self, customer: Customer) {
         if self.get_selected_customer().is_some() {
-            self.buffer[self.filtered[self.scroll_pos]] = customer.clone();
+            self.buffer[self.filtered[self.scroll_pos]] = customer;
         } else {
             self.buffer.push(customer);
         }
+    }
+
+    pub fn load_sample_data(&mut self) {
+        self.buffer = Customer::generate(1000);
     }
 
     pub fn load_customers(&mut self, file_path: PathBuf) {
@@ -86,7 +90,6 @@ impl ScrollBuffer {
                 log::error!("Error loading customers: {}", e);
             }
         }
-        //self.buffer = Customer::generate(1000);
     }
     pub fn save_customers(&mut self, file_path: PathBuf) -> io::Result<()> {
         Customer::save_customers(&self.buffer, file_path)
@@ -214,7 +217,7 @@ impl ScrollBuffer {
         Ok(())
     }
     pub fn get_selected_customer(&self) -> Option<&Customer> {
-        if self.filtered.len() > 0 {
+        if self.filtered.is_empty() {
             let customer_index = self.filtered[self.scroll_pos];
             return Some(&self.buffer[customer_index]);
         }

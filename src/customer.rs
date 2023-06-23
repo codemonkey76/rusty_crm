@@ -5,7 +5,6 @@ use std::path::PathBuf;
 use std::io::Error;
 use std::fs::{self,File};
 use serde::{Serialize, Deserialize};
-use serde_json;
 use std::fmt::{self, Display, Formatter};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -13,7 +12,6 @@ pub struct Customer {
     pub name: String,
     pub contact_name: Option<String>,
     pub phone: Option<String>,
-    pub voip_server: Option<String>
 }
 
 impl Customer {
@@ -22,7 +20,6 @@ impl Customer {
             name: String::new(),
             contact_name: None,
             phone: None,
-            voip_server: None
         }
     }
     pub fn load_customers(file_path: PathBuf) -> Result<Vec<Customer>, Error> {
@@ -55,7 +52,6 @@ impl Customer {
             name: Name().fake::<String>(),
             contact_name: Some(Name().fake::<String>()),
             phone: Some(PhoneNumber().fake::<String>()),
-            voip_server: None
         }
     }
     pub fn set_company_name(&mut self, name: String) {
@@ -81,7 +77,7 @@ impl Display for Customer {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "{} - {} - {}", 
                if self.name.is_empty() { "(none)" } else { &self.name },
-               self.contact_name.as_ref().map(|s| s.as_str()).unwrap_or("(none)"),
-               self.phone.as_ref().map(|s| s.as_str()).unwrap_or("(none)"))
+               self.contact_name.as_deref().unwrap_or("(none)"),
+               self.phone.as_deref().unwrap_or("(none)"))
     }
 }

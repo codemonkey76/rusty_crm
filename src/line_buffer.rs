@@ -1,4 +1,4 @@
-use crossterm::cursor::{MoveTo, SetCursorStyle, MoveLeft, MoveRight, MoveToColumn, SavePosition, RestorePosition};
+use crossterm::cursor::{MoveTo, SetCursorStyle, MoveLeft, MoveRight, MoveToColumn};
 use crossterm::style::{Colors, Print, SetColors};
 use crossterm::{ExecutableCommand, QueueableCommand};
 use crossterm::terminal::{Clear, ClearType};
@@ -67,7 +67,7 @@ impl LineBuffer {
         Ok(())
     }
     pub fn sync_caret(&self) -> io::Result<()> {
-        self.set_colors();
+        self.set_colors()?;
         stdout().queue(MoveTo((self.prompt.len()+self.caret_pos) as u16, 0))?;
         stdout().flush()?;
 
