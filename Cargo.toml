@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.3.5", features = ["derive"] }
 crossterm = "0.26.1"
+directories = "5.0.1"
 fake = "2.6.1"
 log = "0.4.19"
 serde = { version = "1.0.164", features = ["derive"] }

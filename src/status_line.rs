@@ -7,6 +7,7 @@ use crossterm::QueueableCommand;
 use crate::colors::ColorScheme;
 
 pub struct StatusLine {
+    message: String,
     row: usize,
     cols: usize,
     results: usize,
@@ -19,6 +20,7 @@ impl StatusLine {
         let (cols, row) = (size.0 as usize, size.1 as usize - 1);
 
         Ok(StatusLine {
+            message: String::new(),
             cols,
             row,
             results: 0,
@@ -32,7 +34,7 @@ impl StatusLine {
         stdout().queue(SavePosition)?;
         stdout().queue(MoveTo(0, self.row as u16))?;
         stdout().queue(Clear(ClearType::CurrentLine))?;
-        stdout().queue(Print("Ready"))?;
+        stdout().queue(Print(&self.message))?;
         stdout().queue(MoveToColumn((self.cols - results_offset) as u16))?;
         stdout().queue(Print(results_string))?;
         stdout().queue(RestorePosition)?;
@@ -45,6 +47,12 @@ impl StatusLine {
         self.results = count;
         self.draw()?;
 
+        Ok(())
+    }
+
+    pub fn set_message(&mut self, message: String) -> io::Result<()> {
+        self.message = message;
+        self.draw()?;
         Ok(())
     }
 

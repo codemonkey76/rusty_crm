@@ -5,9 +5,11 @@ use crate::status_line::StatusLine;
 use crate::utils::RawMode;
 use crossterm::event::{read, poll, Event, KeyCode, KeyModifiers};
 use std::io;
+use std::path::PathBuf;
 
 
 pub struct Editor {
+    pub file_path: PathBuf,
     pub line_buffer: LineBuffer,     // The line buffer
     pub scroll_buffer: ScrollBuffer, // The scroll buffer
     pub status_line: StatusLine,     // The status line
@@ -16,7 +18,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new() -> Result<Editor, std::io::Error> {
+    pub fn new(file_path: PathBuf) -> Result<Editor, std::io::Error> {
         log::info!("Initializing editor");
         let color_scheme = ColorScheme::new();
         let line_buffer = LineBuffer::new("Query: ".to_string(), color_scheme.clone());
@@ -28,6 +30,7 @@ impl Editor {
         let _raw_mode = RawMode::new()?;
 
         Ok(Editor {
+            file_path,
             line_buffer,
             scroll_buffer,
             status_line,
@@ -45,6 +48,9 @@ impl Editor {
                             log::info!("Exiting editor loop, received CTRL+Q");
                             break;
                         },
+                        KeyCode::Char('s') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.save()?; },
+                        KeyCode::Char('a') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.add_customer()?; },
+                        KeyCode::Char('d') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.delete_customers()?; },
                         KeyCode::Char(c) => { self.add_key(c)?; },
                         KeyCode::Insert => { self.toggle_insert()?; },
                         KeyCode::Left => { self.move_left()?; },
@@ -65,13 +71,20 @@ impl Editor {
     }
 
     pub fn init(&mut self) -> io::Result<()> {
-        self.scroll_buffer.load_customers();
+        self.scroll_buffer.load_customers(self.file_path.clone());
 
         self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
         self.line_buffer.draw()?;
         self.scroll_buffer.draw()?;
         self.status_line.set_results_count(self.scroll_buffer.get_results_count())?;
         self.line_buffer.sync_caret()?;
+
+        Ok(())
+    }
+
+    pub fn save(&mut self) -> io::Result<()> {
+        self.scroll_buffer.save_customers(self.file_path.clone())?;
+        self.status_line.set_message("Saved".to_string())?;
 
         Ok(())
     }
@@ -83,6 +96,16 @@ impl Editor {
         self.status_line.set_results_count(self.scroll_buffer.get_results_count())?;
         self.line_buffer.sync_caret()?;
 
+        Ok(())
+    }
+
+    pub fn add_customer(&mut self) -> io::Result<()> {
+        self.status_line.set_message("Add customer".to_string())?;
+        Ok(())
+    }
+
+    pub fn delete_customers(&mut self) -> io::Result<()> {
+        self.status_line.set_message("Deleting customers".to_string())?;
         Ok(())
     }
 

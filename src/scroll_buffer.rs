@@ -5,6 +5,7 @@ use crossterm::cursor::{SavePosition, RestorePosition, MoveTo, MoveToNextLine};
 use crossterm::style::{Print, SetColors, Colors };
 use crossterm::terminal::{size, Clear, ClearType};
 use crossterm::QueueableCommand;
+use std::path::PathBuf;
 
 pub struct ScrollBuffer {
     buffer: Vec<Customer>,
@@ -33,8 +34,19 @@ impl ScrollBuffer {
         })
     }
 
-    pub fn load_customers(&mut self) {
-        self.buffer = Customer::generate(100);
+    pub fn load_customers(&mut self, file_path: PathBuf) {
+        match Customer::load_customers(file_path) {
+            Ok(customers) => {
+                self.buffer = customers;
+            },
+            Err(e) => {
+                log::error!("Error loading customers: {}", e);
+            }
+        } 
+        //self.buffer = Customer::generate(1000);
+    }
+    pub fn save_customers(&mut self, file_path: PathBuf) -> io::Result<()> {
+        Customer::save_customers(&self.buffer, file_path)
     }
 
     pub fn set_filter(&mut self, filter: String) -> io::Result<()> {
