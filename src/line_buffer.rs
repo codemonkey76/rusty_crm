@@ -31,7 +31,9 @@ impl LineBuffer {
     }
 
     pub fn set_buffer(&mut self, buffer: String) -> io::Result<()> {
+        log::info!("Setting buffer to {}", buffer);
         self.buffer = buffer;
+        log::info!("Buffer is now {}", self.buffer);
         self.caret_pos = self.buffer.len();
         self.draw()?;
 
@@ -46,6 +48,7 @@ impl LineBuffer {
         Ok(())
     }
     pub fn clear(&mut self) -> io::Result<()> {
+        log::info!("Clearing buffer");
         self.buffer = String::new();
         self.caret_pos = 0;
         self.draw()?;

@@ -34,11 +34,43 @@ impl ScrollBuffer {
         })
     }
 
+    pub fn delete_customer(&mut self) -> io::Result<()> {
+        self.buffer.remove(self.scroll_pos);
+        self.set_filter(self.filter.clone())?;
+
+        Ok(())
+    }
+
+    pub fn splash_screen(&mut self) -> io::Result<()> {
+        log::info!("Displaying splash screen");
+        self.clear()?;
+        stdout().queue(MoveTo(0, 1))?;
+        self.set_colors()?;
+        stdout().queue(Print("Welcome to Rusy CRM"))?;
+        stdout().queue(MoveToNextLine(2))?;
+        stdout().queue(Print("Shortcut Keys:"))?;
+        stdout().queue(MoveToNextLine(1))?;
+        stdout().queue(Print(" Ctrl+Q -> Quit Program"))?;
+        stdout().queue(MoveToNextLine(1))?;
+        stdout().queue(Print(" Ctrl+A -> Add Customer"))?;
+        stdout().queue(MoveToNextLine(1))?;
+        stdout().queue(Print(" Ctrl+E -> Edit Customer"))?;
+        stdout().queue(MoveToNextLine(1))?;
+        stdout().queue(Print(" Ctrl+D -> Delete Customer"))?;
+        stdout().queue(MoveToNextLine(2))?;
+
+        stdout().queue(Print("Press SPACE to continue"))?;
+        stdout().flush()?;
+
+        Ok(())
+    }
+
     pub fn add_customer(&mut self, customer: Customer) {
         self.buffer.push(customer);
     }
+
     pub fn update_customer(&mut self, customer: Customer) {
-        if let Some(customer) = self.get_selected_customer() {
+        if self.get_selected_customer().is_some() {
             self.buffer[self.filtered[self.scroll_pos]] = customer.clone();
         } else {
             self.buffer.push(customer);
