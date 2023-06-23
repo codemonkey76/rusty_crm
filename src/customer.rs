@@ -25,8 +25,20 @@ impl Customer {
     pub fn load_customers(file_path: PathBuf) -> Result<Vec<Customer>, Error> {
         let file = File::open(file_path)?;
 
-        let customers: Vec<Customer> = serde_json::from_reader(file)?;
+        let mut customers: Vec<Customer> = serde_json::from_reader(file)?;
 
+        customers.sort_by(|a, b| {
+            let name_a = if a.name.is_empty() { String::from("\u{10FFFF}") } else { a.name.clone() };
+            let name_b = if b.name.is_empty() { String::from("\u{10FFFF}") } else { b.name.clone() };
+            let contact_name_a = a.contact_name.clone().unwrap_or_else(|| String::from("\u{10FFFF}"));
+            let contact_name_b = b.contact_name.clone().unwrap_or_else(|| String::from("\u{10FFFF}"));
+            let name_order = name_a.cmp(&name_b);
+            if name_order == std::cmp::Ordering::Equal {
+                contact_name_a.cmp(&contact_name_b)
+            } else {
+                name_order
+            }
+        });
         Ok(customers)
     }
     pub fn save_customers(customers: &[Customer], file_path: PathBuf) -> Result<(), Error> {
