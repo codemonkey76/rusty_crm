@@ -41,8 +41,11 @@ impl StatusLine {
         Ok(())
     }
 
-    pub fn set_results_count(&mut self, count: usize) {
+    pub fn set_results_count(&mut self, count: usize) -> io::Result<()> {
         self.results = count;
+        self.draw()?;
+
+        Ok(())
     }
 
 }

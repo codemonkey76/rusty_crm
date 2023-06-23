@@ -37,7 +37,6 @@ impl Editor {
     }
 
     pub fn run(&mut self) -> io::Result<()> {
-        log::info!("Starting editor loop");
         loop {
             if poll(std::time::Duration::from_millis(500))? {
                 if let Event::Key(event) = read()? {
@@ -71,8 +70,7 @@ impl Editor {
         self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
         self.line_buffer.draw()?;
         self.scroll_buffer.draw()?;
-        self.status_line.set_results_count(self.scroll_buffer.get_results_count());
-        self.status_line.draw()?;
+        self.status_line.set_results_count(self.scroll_buffer.get_results_count())?;
         self.line_buffer.sync_caret()?;
 
         Ok(())
@@ -82,6 +80,7 @@ impl Editor {
         self.line_buffer.add(&c.to_string())?;
         log::info!("Setting filter on scroll_buffer: {}", self.line_buffer.get_string());
         self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
+        self.status_line.set_results_count(self.scroll_buffer.get_results_count())?;
         self.line_buffer.sync_caret()?;
 
         Ok(())
@@ -120,6 +119,7 @@ impl Editor {
     pub fn delete(&mut self) -> io::Result<()> {
         self.line_buffer.delete()?;
         self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
+        self.status_line.set_results_count(self.scroll_buffer.get_results_count())?;
         self.line_buffer.sync_caret()?;
 
 
@@ -129,6 +129,7 @@ impl Editor {
     pub fn backspace(&mut self) -> io::Result<()> {
         self.line_buffer.backspace()?;
         self.scroll_buffer.set_filter(self.line_buffer.get_string())?;
+        self.status_line.set_results_count(self.scroll_buffer.get_results_count())?;
         self.line_buffer.sync_caret()?;
 
         Ok(())
