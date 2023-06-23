@@ -30,27 +30,55 @@ impl LineBuffer {
         self.buffer.clone()
     }
 
+    pub fn set_buffer(&mut self, buffer: String) -> io::Result<()> {
+        self.buffer = buffer;
+        self.caret_pos = self.buffer.len();
+        self.draw()?;
+
+        Ok(())
+    }
+
+    pub fn set_prompt(&mut self, prompt: String) -> io::Result<()> {
+        log::info!("Setting prompt to {}", prompt);
+        self.prompt = prompt;
+        self.draw()?;
+
+        Ok(())
+    }
+    pub fn clear(&mut self) -> io::Result<()> {
+        self.buffer = String::new();
+        self.caret_pos = 0;
+        self.draw()?;
+
+        Ok(())
+    }
+
     pub fn draw(&self) -> io::Result<()> {
-        stdout().queue(SavePosition)?;
         stdout().queue(MoveTo(0, 0))?;
-        stdout().queue(SetColors(Colors::new(self.color_scheme.light_grey, self.color_scheme.dark_black)))?;
+        self.set_colors()?;
         stdout().queue(Clear(ClearType::CurrentLine))?;
         stdout().queue(Print(&self.prompt))?;
         stdout().queue(Print(&self.buffer))?;
-        stdout().queue(RestorePosition)?;
-        stdout().flush()?;
+        self.sync_caret()?;
 
         Ok(())
     }
     pub fn sync_caret(&self) -> io::Result<()> {
-        stdout().queue(SetColors(Colors::new(self.color_scheme.light_grey, self.color_scheme.dark_black)))?;
+        self.set_colors();
         stdout().queue(MoveTo((self.prompt.len()+self.caret_pos) as u16, 0))?;
         stdout().flush()?;
 
         Ok(())
     }
+    fn set_colors(&self) -> io::Result<()> {
+        stdout().queue(SetColors(Colors::new(self.color_scheme.white, self.color_scheme.dark_black)))?;
+        Ok(())
+    }
+
     pub fn add(&mut self, text: &str) -> crossterm::Result<()> {
         let mut chars: Vec<char> = self.buffer.chars().collect();
+
+        self.set_colors()?;
 
         if self.insert {
             // In insert mode, add the text at the caret position
@@ -84,7 +112,9 @@ impl LineBuffer {
 
         self.buffer = chars.into_iter().collect();
 
+        stdout().queue(Clear(ClearType::UntilNewLine))?;
         stdout().flush()?;
+    
         self.sync_caret()?;
 
         Ok(())
@@ -138,24 +168,16 @@ impl LineBuffer {
         // and redraw the rest of the line
         if self.caret_pos < self.buffer.len() {
             self.buffer.remove(self.caret_pos);
-            stdout().execute(MoveToColumn((self.prompt.len()+self.caret_pos) as u16))?;
-            stdout().queue(Print(&self.buffer[self.caret_pos..]))?;
-            stdout().queue(Print(" "))?;
-            stdout().execute(MoveToColumn((self.prompt.len()+self.caret_pos) as u16))?;
+            self.draw()?;
         }
         Ok(())
     }
 
     pub fn backspace(&mut self) -> io::Result<()> {
-        //Backspace from caret_pos one character from the buffer
-        // and redraw the rest of the line
         if self.caret_pos > 0 {
             self.buffer.remove(self.caret_pos - 1);
             self.caret_pos -= 1;
-            stdout().execute(MoveToColumn((self.prompt.len()+self.caret_pos) as u16))?;
-            stdout().queue(Print(&self.buffer[self.caret_pos..]))?;
-            stdout().queue(Print(" "))?;
-            stdout().execute(MoveToColumn((self.prompt.len()+self.caret_pos) as u16))?;
+            self.draw()?;
         }
 
         Ok(())

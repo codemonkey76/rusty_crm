@@ -34,6 +34,17 @@ impl ScrollBuffer {
         })
     }
 
+    pub fn add_customer(&mut self, customer: Customer) {
+        self.buffer.push(customer);
+    }
+    pub fn update_customer(&mut self, customer: Customer) {
+        if let Some(customer) = self.get_selected_customer() {
+            self.buffer[self.filtered[self.scroll_pos]] = customer.clone();
+        } else {
+            self.buffer.push(customer);
+        }
+    }
+
     pub fn load_customers(&mut self, file_path: PathBuf) {
         match Customer::load_customers(file_path) {
             Ok(customers) => {
@@ -42,7 +53,7 @@ impl ScrollBuffer {
             Err(e) => {
                 log::error!("Error loading customers: {}", e);
             }
-        } 
+        }
         //self.buffer = Customer::generate(1000);
     }
     pub fn save_customers(&mut self, file_path: PathBuf) -> io::Result<()> {
@@ -52,7 +63,12 @@ impl ScrollBuffer {
     pub fn set_filter(&mut self, filter: String) -> io::Result<()> {
         self.filter = filter;
         let filter_clone = self.filter.clone().to_lowercase();
-        self.filtered = self.buffer.iter().enumerate().filter(|(_, c)| c.name.to_lowercase().contains(&filter_clone)).map(|(i, _)| i).collect();
+        self.filtered = self.buffer.iter().enumerate().filter(|(_, c)| {
+            c.name.to_lowercase().contains(&filter_clone) ||
+            c.contact_name.as_ref().unwrap_or(&"".to_string()).to_lowercase().contains(&filter_clone) ||
+            c.phone.as_ref().unwrap_or(&"".to_string()).to_lowercase().contains(&filter_clone)
+        }).map(|(i, _)| i).collect();
+        
         log::info!("Filtered count: {}", self.filtered.len());
         self.scroll_pos = 0;
         self.draw()?;
@@ -62,6 +78,7 @@ impl ScrollBuffer {
 
     pub fn clear(&self) -> io::Result<()> {
         stdout().queue(MoveTo(0, 1))?;
+        self.set_colors()?;
         for _ in 0..self.rows {
             stdout().queue(Clear(ClearType::CurrentLine))?;
             stdout().queue(MoveToNextLine(1))?;
@@ -70,19 +87,19 @@ impl ScrollBuffer {
 
         Ok(())
     }
+    fn set_colors(&self) -> io::Result<()> {
+        stdout().queue(SetColors(Colors::new(self.color_scheme.magenta, self.color_scheme.dark_black)))?;
+
+        Ok(())
+    }
     pub fn draw(&self) -> io::Result<()> {
-        log::info!("Starting function ScrollBuffer::draw");
-        self.clear()?;
         stdout().queue(SavePosition)?;
+        self.clear()?;
         stdout().queue(MoveTo(0, 1))?;
 
-        // Calculate the start and end index for the customers to draw.
-        log::info!("Calculating start and end index");
         let mut start_index = self.scroll_pos.saturating_sub(self.rows * 2 / 3);
         let mut end_index = (start_index + self.rows).min(self.filtered.len());
 
-        // if we've scrolled past the end of the buffer, adjust start_index to show the last page
-        // of customers
         if end_index == self.filtered.len() && start_index + self.rows > end_index {
             start_index = end_index.saturating_sub(self.rows);
         }
@@ -91,8 +108,6 @@ impl ScrollBuffer {
             start_index = 0;
             end_index = self.rows.min(self.filtered.len());
         }
-
-        log::info!("Starting loop to draw customers in filtered vector");
 
         for i in start_index..end_index {
             let customer_index = self.filtered[i];  // get the index of the customer
@@ -103,12 +118,11 @@ impl ScrollBuffer {
                 stdout().queue(SetColors(Colors::new(self.color_scheme.magenta, self.color_scheme.dark_black)))?;
             }
             stdout().queue(Clear(ClearType::CurrentLine))?;
-            stdout().queue(Print(format!("{}: {}", customer_index, customer.name)))?;
+            stdout().queue(Print(format!("{}", customer)))?;
             stdout().queue(MoveToNextLine(1))?;
         }
         stdout().queue(RestorePosition)?;
         stdout().flush()?;
-        log::info!("Finished drawing customers");
 
         if self.filtered.len() > self.rows {
             self.draw_scroll_bar()?;
@@ -119,13 +133,10 @@ impl ScrollBuffer {
 
 
     fn draw_scroll_bar(&self) -> io::Result<()> {
-        log::info!("Drawing scrollbar");
         stdout().queue(SavePosition)?;
 
-        log::info!("Calculating scrollbar position");
         let scrollbar_pos = self.calculate_scrollbar_handle_position();
 
-        log::info!("Looping through rows to draw scrollbar");
         for i in 1..=self.rows {
             stdout().queue(MoveTo(self.cols as u16-1,  i as u16))?;
             if i == scrollbar_pos {
@@ -139,10 +150,8 @@ impl ScrollBuffer {
             }
         }
         stdout().queue(RestorePosition)?;
-        log::info!("Flushing commands");
         stdout().flush()?;
 
-        log::info!("Finished drawing scrollbar");
         Ok(())
 
     }
@@ -171,6 +180,13 @@ impl ScrollBuffer {
         self.draw()?;
 
         Ok(())
+    }
+    pub fn get_selected_customer(&self) -> Option<&Customer> {
+        if self.filtered.len() > 0 {
+            let customer_index = self.filtered[self.scroll_pos];
+            return Some(&self.buffer[customer_index]);
+        }
+        None
     }
 }
 
