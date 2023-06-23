@@ -5,19 +5,28 @@ mod utils;
 mod scroll_buffer;
 mod editor;
 mod customer;
+mod logger;
+
 use editor::Editor;
-use simplelog::*;
-use std::fs::File;
+
 
 fn main() {
-    let _ = WriteLogger::init(LevelFilter::Info, Config::default(), File::create("log/log.log").unwrap());
-
-    log::info!("Starting program...");
-
-    let mut editor = Editor::new().expect("Error creating new editor instance");
-
-    editor.init().expect("Some error initializing");
-
-    editor.run().expect("An error occurred running editor");
+    match run_program() {
+        Ok(_) => log::info!("Program exited successfully"),
+        Err(e) => log::error!("Program failed: {}", e),
+    }
 }
+
+fn run_program() -> Result<(), Box<dyn std::error::Error>> {
+    logger::setup_logger()?;
+
+    let mut editor = Editor::new()?;
+
+    editor.init()?;
+
+    editor.run()?;
+
+    Ok(())
+}
+
 
