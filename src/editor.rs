@@ -255,6 +255,7 @@ impl Editor {
             if c == 'y' {
                 log::info!("Deleting customer");
                 if self.scroll_buffer.get_selected_customer().is_some() {
+                    log::info!("Found we have a valid selected customer");
                     self.scroll_buffer.delete_customer()?;
                     self.set_mode(EditorMode::Normal)?;
                     self.filter()?;

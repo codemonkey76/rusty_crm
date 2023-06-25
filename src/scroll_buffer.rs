@@ -35,6 +35,7 @@ impl ScrollBuffer {
     }
 
     pub fn delete_customer(&mut self) -> io::Result<()> {
+        log::info!("inside ScrollBuffer::delete_customer");
         self.buffer.remove(self.scroll_pos);
         self.set_filter(self.filter.clone())?;
 
@@ -217,7 +218,7 @@ impl ScrollBuffer {
         Ok(())
     }
     pub fn get_selected_customer(&self) -> Option<&Customer> {
-        if self.filtered.is_empty() {
+        if ! self.filtered.is_empty() {
             let customer_index = self.filtered[self.scroll_pos];
             return Some(&self.buffer[customer_index]);
         }
