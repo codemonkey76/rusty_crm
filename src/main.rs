@@ -13,8 +13,15 @@ use clap::Parser;
 use directories::ProjectDirs;
 use std::path::PathBuf;
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+            log::error!("Panic: {}", s);
+        } else {
+            log::error!("Panic occurred.");
+        }
+    }));
+
     match run_program() {
         Ok(_) => log::info!("Program exited successfully"),
         Err(e) => log::error!("Program failed: {}", e),

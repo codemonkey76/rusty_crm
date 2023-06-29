@@ -150,7 +150,7 @@ impl ScrollBuffer {
         Ok(())
     }
 
-    pub async fn dial_customer(&self) -> io::Result<()> {
+    pub fn dial_customer(&self) -> io::Result<()> {
         log::info!("Dialling customer");
         if let Some(customer) = self.get_selected_customer() {
             log::info!("Dialling customer: {:?}", customer);
@@ -158,7 +158,7 @@ impl ScrollBuffer {
                 log::info!("Dialling phone: {}", phone);
                 if let Some(p) = &self.phone {
                     log::info!("Phone is initialized..., sending keys");
-                    p.send_keys(self.get_phone_keys(&phone)).await;
+                    p.send_keys(self.get_phone_keys(phone));
                 }
             }
         }
@@ -188,6 +188,8 @@ impl ScrollBuffer {
             };
             keys.push(key);
         }
+        keys.push(PhoneKey::Send);
+
         keys
 
     }

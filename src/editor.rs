@@ -209,11 +209,15 @@ impl Editor {
     }
 
     pub fn init(&mut self) -> io::Result<()> {
-        self.scroll_buffer.load_config(self.config_path.clone()).unwrap();
+        log::info!("Loading config...");
+        self.scroll_buffer.load_config(self.config_path.clone()).expect("Error loading config");
+        log::info!("Finished loading config...");
 
         if self.sample_data {
+            log::info!("Loading sample data...");
             self.scroll_buffer.load_sample_data();
         } else {
+            log::info!("Loading customers...");
             self.scroll_buffer.load_customers(self.file_path.clone());
         }
 
@@ -227,8 +231,9 @@ impl Editor {
             self.scroll_buffer.splash_screen()?;
         }
 
-        self.scroll_buffer.dial_customer()?;
-    
+        //self.scroll_buffer.dial_customer().expect("Error dialling customer");
+
+        log::info!("Initialization complete...");
         Ok(())
     }
 

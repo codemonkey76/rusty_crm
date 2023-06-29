@@ -1,10 +1,9 @@
-use reqwest::ClientBuilder;
 use serde::{Serialize, Deserialize};
 
 pub struct Phone {
     address: String,
     password: String,
-    client: Option<reqwest::Client>,
+    client: Option<reqwest::blocking::Client>,
     _line: PhoneLine
 }
 
@@ -12,11 +11,23 @@ const BASE_URL: &str = "cgi-bin/api-";
 
 impl Phone {
     pub fn new(address: String, password: String, _line: PhoneLine) -> Phone {
-        let client = ClientBuilder::new()
-            .danger_accept_invalid_hostnames(true)
+
+        let client_result = reqwest::blocking::Client::builder()
             .danger_accept_invalid_certs(true)
-            .build()
-            .ok();
+            .build();
+
+        let client = match client_result {
+            Ok(client) => {
+                log::info!("{:?}", client);
+                Some(client)
+            },
+            Err(e) => {
+                log::error!("Failed to build the client: {:?}", e);
+                None
+            },
+        };
+
+        log::info!("Constructing Phone struct...");
 
         Phone {
             address,
@@ -34,7 +45,7 @@ impl Phone {
                               "get_line_status",
                               self.password);
 
-            let res = client.get(&url).send().await.ok()?.text().await.ok()?;
+            let res = client.get(&url).send().ok()?.text().ok()?;
 
             return Some(res);
         }
@@ -65,7 +76,7 @@ impl Phone {
         }
     }
 
-    pub async fn send_keys(&self, keys: Vec<PhoneKey>) {
+    pub fn send_keys(&self, keys: Vec<PhoneKey>) {
         // Make a post request, sending the keys
         if let Some(client) = &self.client {
             let url = format!("https://{}/{}{}",
@@ -76,12 +87,13 @@ impl Phone {
             for key in keys {
                 let key = match key {
                     PhoneKey::KeypadKey(c) => self.keypad_key_to_string(c),
+                    PhoneKey::Send => "SEND".to_owned(),
                     _ => continue
                 };
 
                 let params = [("password", self.password.clone()), ("keys", key.to_owned())];
 
-                client.post(&url).form(&params).send().await.ok().unwrap().text().await.ok();
+                client.post(&url).form(&params).send().expect("Got an error posting to endpoint");
             }
         }
     }
