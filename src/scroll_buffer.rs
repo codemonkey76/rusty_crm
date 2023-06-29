@@ -6,15 +6,26 @@ use crossterm::style::{Print, SetColors, Colors };
 use crossterm::terminal::{size, Clear, ClearType};
 use crossterm::QueueableCommand;
 use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use crate::phone::*;
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Config {
+    pub phone_ip: String,
+    pub password: String,
+    pub line: PhoneLine
+}
 
 pub struct ScrollBuffer {
     buffer: Vec<Customer>,
+    config: Config,
     filter: String,
     filtered: Vec<usize>,
     scroll_pos: usize,
     rows: usize,
     cols: usize,
-    color_scheme: ColorScheme
+    color_scheme: ColorScheme,
+    phone: Option<Phone>
 }
 
 
@@ -25,17 +36,22 @@ impl ScrollBuffer {
 
         Ok(ScrollBuffer {
             buffer: Vec::new(),
+            config: Config {
+                phone_ip: "".to_string(),
+                password: "".to_string(),
+                line: PhoneLine::Line1
+            },
             filtered: Vec::new(),
             filter: String::new(),
             scroll_pos: 0,
             cols,
             rows,
-            color_scheme
+            color_scheme,
+            phone: None
         })
     }
 
     pub fn delete_customer(&mut self) -> io::Result<()> {
-        log::info!("inside ScrollBuffer::delete_customer");
         self.buffer.remove(self.scroll_pos);
         self.set_filter(self.filter.clone())?;
 
@@ -43,7 +59,6 @@ impl ScrollBuffer {
     }
 
     pub fn splash_screen(&mut self) -> io::Result<()> {
-        log::info!("Displaying splash screen");
         self.clear()?;
         stdout().queue(MoveTo(0, 1))?;
         self.set_colors()?;
@@ -92,6 +107,17 @@ impl ScrollBuffer {
             }
         }
     }
+
+    pub fn load_config(&mut self, config_path: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+        let contents = std::fs::read_to_string(config_path)?;
+
+        self.config = toml::from_str(&contents)?;
+
+        log::info!("Loaded config: {:?}", self.config);
+
+        self.phone = Some(Phone::new(self.config.phone_ip.clone(), self.config.password.clone(), self.config.line.clone()));
+        Ok(())
+    }
     pub fn save_customers(&mut self, file_path: PathBuf) -> io::Result<()> {
         Customer::save_customers(&self.buffer, file_path)
     }
@@ -105,7 +131,6 @@ impl ScrollBuffer {
             c.phone.as_ref().unwrap_or(&"".to_string()).to_lowercase().contains(&filter_clone)
         }).map(|(i, _)| i).collect();
         
-        log::info!("Filtered count: {}", self.filtered.len());
         self.scroll_pos = 0;
         self.draw()?;
 
@@ -122,6 +147,48 @@ impl ScrollBuffer {
         stdout().flush()?;
 
         Ok(())
+    }
+
+    pub fn dial_customer(&self) -> io::Result<()> {
+        log::info!("Dialling customer");
+        if let Some(customer) = self.get_selected_customer() {
+            log::info!("Dialling customer: {:?}", customer);
+            if let Some(phone) = &customer.phone {
+                log::info!("Dialling phone: {}", phone);
+                if let Some(p) = &self.phone {
+                    log::info!("Phone is initialized..., sending keys");
+                    p.send_keys(self.get_phone_keys(&phone));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn get_phone_keys(&self, number: &str) -> Vec<PhoneKey> {
+        let mut keys = Vec::new();
+
+        for c in number.chars() {
+            let key = match c {
+                '0' => PhoneKey::KeypadKey(KeypadKey::Zero),
+                '1' => PhoneKey::KeypadKey(KeypadKey::One),
+                '2' => PhoneKey::KeypadKey(KeypadKey::Two),
+                '3' => PhoneKey::KeypadKey(KeypadKey::Three),
+                '4' => PhoneKey::KeypadKey(KeypadKey::Four),
+                '5' => PhoneKey::KeypadKey(KeypadKey::Five),
+                '6' => PhoneKey::KeypadKey(KeypadKey::Six),
+                '7' => PhoneKey::KeypadKey(KeypadKey::Seven),
+                '8' => PhoneKey::KeypadKey(KeypadKey::Eight),
+                '9' => PhoneKey::KeypadKey(KeypadKey::Nine),
+                '*' => PhoneKey::KeypadKey(KeypadKey::Star),
+                '#' => PhoneKey::KeypadKey(KeypadKey::Hash),
+                ' ' => continue, // Skip spaces
+                _ => panic!("Invalid character in phone number: {}", c)
+            };
+            keys.push(key);
+        }
+        keys
+
     }
     fn set_colors(&self) -> io::Result<()> {
         stdout().queue(SetColors(Colors::new(self.color_scheme.magenta, self.color_scheme.dark_black)))?;

@@ -22,6 +22,7 @@ pub enum EditorMode {
 }
 pub struct Editor {
     pub file_path: PathBuf,
+    pub config_path: PathBuf,
     pub line_buffer: LineBuffer,     // The line buffer
     pub scroll_buffer: ScrollBuffer, // The scroll buffer
     pub status_line: StatusLine,     // The status line
@@ -34,7 +35,7 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(file_path: PathBuf, no_splash: bool, sample_data: bool) -> Result<Editor, std::io::Error> {
+    pub fn new(file_path: PathBuf, config_path: PathBuf, no_splash: bool, sample_data: bool) -> Result<Editor, std::io::Error> {
         log::info!("Initializing editor");
         let color_scheme = ColorScheme::new();
         let line_buffer = LineBuffer::new("Query: ".to_string(), color_scheme.clone());
@@ -47,6 +48,7 @@ impl Editor {
 
         Ok(Editor {
             file_path,
+            config_path,
             line_buffer,
             scroll_buffer,
             status_line,
@@ -72,6 +74,7 @@ impl Editor {
                             break;
                         },
                         KeyCode::Char('s') if event.modifiers.contains(KeyModifiers::CONTROL) => { if !self.sample_data { self.save()?; } },
+                        KeyCode::Char('c') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.call_customer()?; },
                         KeyCode::Char('a') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.add_customer()?; },
                         KeyCode::Char('e') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.edit_customer()?; },
                         KeyCode::Char('d') if event.modifiers.contains(KeyModifiers::CONTROL) => { self.delete_customer()?; },
@@ -208,6 +211,8 @@ impl Editor {
     }
 
     pub fn init(&mut self) -> io::Result<()> {
+        self.scroll_buffer.load_config(self.config_path.clone()).unwrap();
+
         if self.sample_data {
             self.scroll_buffer.load_sample_data();
         } else {
@@ -241,6 +246,12 @@ impl Editor {
         Ok(())
     }
 
+    pub fn call_customer(&self) -> io::Result<()> {
+        log::info!("Calling customer");
+        self.scroll_buffer.dial_customer()?;
+
+        Ok(())
+    }
 
     pub fn add_key(&mut self, c: char) -> io::Result<()> {
         log::info!("Key pressed: {}", c);
