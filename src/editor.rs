@@ -36,13 +36,10 @@ pub struct Editor {
 
 impl Editor {
     pub fn new(file_path: PathBuf, config_path: PathBuf, no_splash: bool, sample_data: bool) -> Result<Editor, std::io::Error> {
-        log::info!("Initializing editor");
         let color_scheme = ColorScheme::new();
         let line_buffer = LineBuffer::new("Query: ".to_string(), color_scheme.clone());
         let scroll_buffer = ScrollBuffer::new(color_scheme.clone())?;
         let status_line = StatusLine::new(color_scheme.clone())?;
-        log::info!("Editor initialized");
-        log::info!("Starting RawMode");
 
         let _raw_mode = RawMode::new()?;
 
@@ -167,6 +164,7 @@ impl Editor {
 
         Ok(())
     }
+
     pub fn enter(&mut self) -> io::Result<()> {
         log::info!("Enter pressed");
         match self.mode {
@@ -228,6 +226,8 @@ impl Editor {
         } else {
             self.scroll_buffer.splash_screen()?;
         }
+
+        self.scroll_buffer.dial_customer()?;
     
         Ok(())
     }

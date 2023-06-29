@@ -1,4 +1,3 @@
-use reqwest;
 use reqwest::ClientBuilder;
 use serde::{Serialize, Deserialize};
 
@@ -6,13 +5,13 @@ pub struct Phone {
     address: String,
     password: String,
     client: Option<reqwest::Client>,
-    line: PhoneLine
+    _line: PhoneLine
 }
 
-const BASE_URL: &'static str = "cgi-bin/api-";
+const BASE_URL: &str = "cgi-bin/api-";
 
 impl Phone {
-    pub fn new(address: String, password: String, line: PhoneLine) -> Phone {
+    pub fn new(address: String, password: String, _line: PhoneLine) -> Phone {
         let client = ClientBuilder::new()
             .danger_accept_invalid_hostnames(true)
             .danger_accept_invalid_certs(true)
@@ -23,13 +22,12 @@ impl Phone {
             address,
             password,
             client,
-            line
+            _line
         }
     }
 
     pub async fn get_line_status(&self) -> Option<String> {
         if let Some(client) = &self.client {
-
             let url = format!("https://{}/{}{}?passcode={}",
                               self.address,
                               BASE_URL,
@@ -43,16 +41,28 @@ impl Phone {
         None
     }
 
-    pub fn get_phone_status(&self) {
-    }
+    pub fn get_phone_status(&self) {}
 
-    pub fn phone_operation(&self, operation: PhoneOperation) {
-    }
+    pub fn phone_operation(&self, _operation: PhoneOperation) {}
 
-    pub fn system_operation(&self, operation: SystemOperation) {
-    }
+    pub fn system_operation(&self, _operation: SystemOperation) {}
 
-    pub fn send_key(&self, key: PhoneKey) {
+    pub fn send_key(&self, _key: PhoneKey) {}
+
+    fn keypad_key_to_string(&self, key: KeypadKey) -> String {
+        match key {
+            KeypadKey::Zero => "0".to_owned(),
+            KeypadKey::One => "1".to_owned(),
+            KeypadKey::Two => "2".to_owned(),
+            KeypadKey::Three => "3".to_owned(),
+            KeypadKey::Four => "4".to_owned(),
+            KeypadKey::Five => "5".to_owned(),
+            KeypadKey::Six => "6".to_owned(),
+            KeypadKey::Seven => "7".to_owned(),
+            KeypadKey::Eight => "8".to_owned(),
+            KeypadKey::Nine => "9".to_owned(),
+            _ => "".to_owned()
+        }
     }
 
     pub async fn send_keys(&self, keys: Vec<PhoneKey>) {
@@ -65,29 +75,20 @@ impl Phone {
             
             for key in keys {
                 let key = match key {
-                    PhoneKey::KeypadKey(c) => self.keypad_key_to_string(),
-                    PhoneKey::KeypadKey(One) => "1",
-                    PhoneKey::KeypadKey(Two) => "2",
-                    PhoneKey::KeypadKey(Three) => "3",
-                    PhoneKey::KeypadKey(Four) => "4",
-                    PhoneKey::KeypadKey(Five) => "5",
-                    PhoneKey::KeypadKey(Six) => "6",
-                    PhoneKey::KeypadKey(Seven) => "7",
-                    PhoneKey::KeypadKey(Eight) => "8",
-                    PhoneKey::KeypadKey(Nine) => "8",
+                    PhoneKey::KeypadKey(c) => self.keypad_key_to_string(c),
                     _ => continue
                 };
 
                 let params = [("password", self.password.clone()), ("keys", key.to_owned())];
 
-                let res = client.post(&url).form(&params).send().await.ok().unwrap().text().await.ok();
+                client.post(&url).form(&params).send().await.ok().unwrap().text().await.ok();
             }
         }
     }
 
 }
 
-enum PhoneOperation {
+pub enum PhoneOperation {
     EndCall,
     HoldCall,
     AcceptCall,
@@ -95,7 +96,7 @@ enum PhoneOperation {
     Cancel
 }
 
-enum SystemOperation {
+pub enum SystemOperation {
     Reboot,
     Reset
 }

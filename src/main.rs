@@ -12,13 +12,9 @@ use editor::Editor;
 use clap::Parser;
 use directories::ProjectDirs;
 use std::path::PathBuf;
-use phone::Phone;
 
 #[tokio::main]
 async fn main() {
-    let phone = Phone::new("10.0.0.74".to_owned(), "admin".to_owned(), phone::PhoneLine::Line1);
-    println!("{}", phone.get_line_status().await.expect("Failed"));
-
     match run_program() {
         Ok(_) => log::info!("Program exited successfully"),
         Err(e) => log::error!("Program failed: {}", e),
