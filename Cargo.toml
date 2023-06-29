@@ -1,6 +1,6 @@
 [package]
 name = "rusty_crm"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Shane Poppleton <shane@bjja.com.au>"]
 description = "A simple command line contact manager"
